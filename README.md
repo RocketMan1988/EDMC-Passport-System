@@ -14,6 +14,8 @@ The system will keep track of DSSA Fleet Carriers that the Commander visits. Eac
 
 You will need to re-start EDMC to use the newly added plugin.
 
+If you enjoy using EDPS then please consider supporting me on [Patreon](https://www.patreon.com/FlyDangerous)
+
 ## Usage and Settings
 
 The first thing the user must do is goto the EDMC's settings menu and enter their API Key provided to them by [EDPS](https://edps.dev) after sign up. Make sure that the checkbox for "Send passport data to EDPS" is checked. Afterwards select the _Ok_ button from setttings and then relaunch the EDMC. 
