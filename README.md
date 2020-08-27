@@ -1,6 +1,6 @@
 # EDMC Passport System for [EDMC](https://github.com/Marginal/EDMarketConnector/wiki)
 
-EDMC Passport System is a plugin that connects to [EDPS](https://edps.dev)
+EDMC Passport System is a plugin that connects to [EDPS](https://edps.dev) and sends passport data as the commander docks to DSSA FCs.
 
 The system will keep track of DSSA Fleet Carriers that the Commander visits. Each time the commander visits a DSSA Fleet Carrier they will recieve a patch on their Passport. The System requires that the commander signs up on [EDPS](https://edps.dev) in order to recieve an API Key which is required to use this plugin.
 
