@@ -298,19 +298,24 @@ def load_Journal_Logs():
                 with open(rootdir + '\\' + file, 'r', encoding ="utf8") as f:
                     try:
                         for line in f:
-                            data = json.loads(line)
-                            if data['event'] == 'Docked':
-                                if data['StationType'] == 'FleetCarrier' and any(x['callsign_formatted'] == data['StationName'] and x['system'] == data['StarSystem'] for x in this.FCs):
-                                    d1 = datetime.strptime(data['timestamp'],"%Y-%m-%dT%H:%M:%SZ")
-                                    w['text'] = w['text'] + "\nDocked to DSSA FC: " + data['StationName']
-                                    print(f)
-                                    print(line)
-                                    this.queueEDPS.put(('https://edps-api.d3develop.com/passports/passport/date',
-                                                    {'cmder_name': config.get("edpscmder"), 'api_key': config.get("edpsapikey"),
-                                                     'callsign': data['StationName'].replace("-", ""),
-                                                     'date': d1.strftime('%m/%d/%Y')}, None, 'postDate',
-                                                    data['StationName'].replace("-", "")))
-                                    time.sleep(.01)
+                            try:
+                                data = json.loads(line)
+                                if data['event'] == 'Docked':
+                                    if data['StationType'] == 'FleetCarrier' and any(x['callsign_formatted'] == data['StationName'] and x['system'].lower() == data['StarSystem'].lower() for x in this.FCs):
+                                        d1 = datetime.strptime(data['timestamp'],"%Y-%m-%dT%H:%M:%SZ")
+                                        w['text'] = w['text'] + "\nDocked to DSSA FC: " + data['StationName']
+                                        this.queueEDPS.put(('https://edps-api.d3develop.com/passports/passport/date',
+                                                        {'cmder_name': config.get("edpscmder"), 'api_key': config.get("edpsapikey"),
+                                                         'callsign': data['StationName'].replace("-", ""),
+                                                         'date': d1.strftime('%m/%d/%Y')}, None, 'postDate',
+                                                        data['StationName'].replace("-", "")))
+                                        time.sleep(.01)
+                            except json.decoder.JSONDecodeError:
+                                print('Error Reading Line in this file:')
+                                print(f)
+                                print('The line is:')
+                                print(line)
+                                continue
                     except UnicodeDecodeError:
                         console.log("Error Reading a line from the data file")
                         continue
