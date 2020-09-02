@@ -13,7 +13,7 @@ Note: [EDMC](https://github.com/Marginal/EDMarketConnector/wiki) is required to 
 1. On EDMC's Plugins settings tab press the _Open_ button. This reveals the _plugins_ folder where EDMC looks for plugins.
 2. Download the [latest release](https://github.com/RocketMan1988/EDMC-Passport-System/releases).
 3. Open the _.zip_ archive that you downloaded and move the _EDMC-Passport-System_ folder contained inside into the _plugins_ folder.
-4) Continue to read the Usage, Settings, and 'Import Journal Files' sections for the rest of the required steps. 
+4. Continue to read the Usage, Settings, and 'Import Journal Files' sections for the rest of the required steps. 
 
 You will need to re-start EDMC to use the newly added plugin.
 
