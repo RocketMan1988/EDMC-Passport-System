@@ -34,15 +34,20 @@ except ImportError:
 
 def updatePlugin(version):
     print('Beginning file download with requests')
-    #Testff
     url = 'https://raw.githubusercontent.com/RocketMan1988/EDMC-Passport-System/' + version + '/load.py'
     r = requests.get(url)
+    print(url)
 
     if r.ok:
-        with open(__file__, 'wb') as f:
+        with open(__file__.replace('load.py', 'load_temp'), 'wb') as f:
             f.write(r.content)
+        try:
+            os.replace(__file__.replace('load.py', 'load_temp'), __file__)
+        except OSError:
+            os.remove(__file__)
+            os.rename(__file__.replace('load.py', 'load_temp'), __file__)
         print('Update Complete...')
-        os.execv(__file__, sys.argv)
+        this.label4["text"] = "Update Complete! Please Restart EDMC!"
     else:
         this.label4["text"] = "Update Failed"
         print('Update Failed...')
@@ -165,9 +170,7 @@ def workerEDPS():
                             this.edpsConsoleMessage = 'Outdated Plugin Version - Updating...'
                             this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
                             updatePlugin(this.AppInformationEDPS['EDMCApp'])
-                            this.edpsConsoleMessage = 'Plugin Updated! Please Restart Now!'
-                            this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
-                            time.sleep(9999999999999)
+                            time.sleep(1)
                             retrying = 3
                             break
                         else:
