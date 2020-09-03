@@ -19,7 +19,7 @@ if __debug__:
     from traceback import print_exc
 
 _TIMEOUT = 20
-_EDPSAPPVERSION = "0.2"
+_EDPSAPPVERSION = "0.7"
 
 this = sys.modules[__name__]  # For holding module globals
 #this.session = requests.Session()
@@ -31,6 +31,22 @@ try:
     from config import config
 except ImportError:
     config = dict()
+
+def updatePlugin(version):
+    print('Beginning file download with requests')
+    #Testff
+    url = 'https://raw.githubusercontent.com/RocketMan1988/EDMC-Passport-System/' + version + '/load.py'
+    r = requests.get(url)
+
+    if r.ok:
+        with open(__file__, 'wb') as f:
+            f.write(r.content)
+        print('Update Complete...')
+        os.execv(__file__, sys.argv)
+    else:
+        this.label4["text"] = "Update Failed"
+        print('Update Failed...')
+
 
 
 def plugin_start3(plugin_dir):
@@ -146,8 +162,12 @@ def workerEDPS():
                         print('Status is Ok')
                         if this.AppInformationEDPS['EDMCApp'] != _EDPSAPPVERSION:
                             print('EDPS needs to be updated')
-                            this.edpsConsoleMessage = 'Outdated Plugin Version - Please Download New Version'
+                            this.edpsConsoleMessage = 'Outdated Plugin Version - Updating...'
                             this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                            updatePlugin(this.AppInformationEDPS['EDMCApp'])
+                            this.edpsConsoleMessage = 'Plugin Updated! Please Restart Now!'
+                            this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                            time.sleep(9999999999999)
                             retrying = 3
                             break
                         else:
