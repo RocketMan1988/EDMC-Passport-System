@@ -14,6 +14,7 @@ import json
 import textwrap
 from queue import Queue
 from threading import Thread
+from monitor import monitor
 
 if __debug__:
     from traceback import print_exc
@@ -53,6 +54,19 @@ def updatePlugin(version):
         print('Update Failed...')
 
 
+def wipeSettings():
+    config.set("edps_apikeys", [None])
+    config.set("edps_cmdrs", [None])
+    config.set('edpscmder', '')
+    printDebugInfo()
+
+def printDebugInfo():
+    cmder = config.get("edpscmder")
+    apikeys = config.get("edps_apikeys")
+    cmdrs = config.get("edps_cmdrs")
+    print(cmder)
+    print(apikeys)
+    print(cmdrs)
 
 def plugin_start3(plugin_dir):
    """
@@ -66,9 +80,14 @@ def plugin_start3(plugin_dir):
    this.threadEDPS.daemon = True
    this.threadEDPS.start()
    print("ED Passport System Plugin Loading...")
+
+   cmder = config.get("edpscmder")
+
    this.queueEDPS.put(('does not matter',{},None, 'getAppInformation', ""))
    this.queueEDPS.put(('does not matter', {}, None, 'getFCsList',""))
-   this.queueEDPS.put(('does not matter', {}, None, 'getPassport',""))
+   this.queueEDPS.put(('does not matter', {}, None, 'getPassportStartUp',""))
+
+   #wipeSettings()
 
    return "EDPS"
 
@@ -107,48 +126,41 @@ def workerEDPS():
                     else:
                         print("Add FC to Passport!")
                         if config.getint("edpslog"):
-                            cred = credentials(config.get("edpscmder"))
-                            if cred:
-                                headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
-                                r = requests.post(url, data=json.dumps(data, separators=(',', ':')), headers=headers, timeout=_TIMEOUT)
-                                time.sleep(1)
-                                reply = r.json()
+                            headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
+                            r = requests.post(url, data=json.dumps(data, separators=(',', ':')), headers=headers, timeout=_TIMEOUT)
+                            time.sleep(1)
+                            reply = r.json()
 
-                                if r.text == '"Date Added"':
-                                    print('Posted!')
-                                    this.edpsConsoleMessage = 'DSSA Docking Added to Passport'
+                            if r.text == '"Date Added"':
+                                print('Posted!')
+                                this.edpsConsoleMessage = 'DSSA Docking Added to Passport'
+                                this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                                time.sleep(1)
+                                this.edpsPassportCountMessage = str(this.PassortLength + 1) + ' of ' + str(this.FCLength)
+                                this.label2.event_generate('<<edpsUpdatePassportCountEvent>>', when="tail")
+                                this.Passport['visited'].update({data['callsign']:data['date']})
+                                this.PassortLength = (len(this.Passport['visited']) - 1)
+                                time.sleep(1)
+                                #this.queue.put(('does not matter', {}, None, 'getPassport', ""))
+                                retrying = 3
+                                break
+                            else:
+                                print('Error Posting!')
+                                if r.text == '"Wrong API Key"':
+                                    this.edpsConsoleMessage = 'API Key Wrong in Settings'
                                     this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
-                                    time.sleep(1)
-                                    this.edpsPassportCountMessage = str(this.PassortLength + 1) + ' of ' + str(this.FCLength)
-                                    this.label2.event_generate('<<edpsUpdatePassportCountEvent>>', when="tail")
-                                    this.Passport['visited'].update({data['callsign']:data['date']})
-                                    this.PassortLength = (len(this.Passport['visited']) - 1)
-                                    time.sleep(1)
-                                    #this.queue.put(('does not matter', {}, None, 'getPassport', ""))
+                                    retrying = 3
+                                    break
+                                elif r.text == '"Passport does not exists"':
+                                    this.edpsConsoleMessage = 'Cmder not found! Sign up at edps.dev!'
+                                    this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
                                     retrying = 3
                                     break
                                 else:
-                                    print('Error Posting!')
-                                    if r.text == '"Wrong API Key"':
-                                        this.edpsConsoleMessage = 'API Key Wrong in Settings'
-                                        this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
-                                        retrying = 3
-                                        break
-                                    elif r.text == '"Passport does not exists"':
-                                        this.edpsConsoleMessage = 'Cmder not found! Sign up at edps.dev!'
-                                        this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
-                                        retrying = 3
-                                        break
-                                    else:
-                                        this.edpsConsoleMessage = 'Unknown Error Adding to Passport'
-                                        this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
-                                        retrying = 3
-                                        break
-                            else:
-                                this.edpsConsoleMessage = 'No credentials'
-                                this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
-                                retrying = 3
-                                break
+                                    this.edpsConsoleMessage = 'Unknown Error Adding to Passport'
+                                    this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                                    retrying = 3
+                                    break
 
                         else:
                             print('User does not want to send data')
@@ -159,7 +171,7 @@ def workerEDPS():
 
                 elif callType == 'getAppInformation':
                     print('Getting App Information')
-                    time.sleep(3)
+                    time.sleep(2)
                     headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
                     r = requests.get('https://www.edps.dev/AppInformation.json', headers=headers, timeout=_TIMEOUT)
                     this.AppInformationEDPS = json.loads(r.text)
@@ -209,6 +221,55 @@ def workerEDPS():
                 elif callType == 'getPassport':
                     print('Getting Commanders Passport')
                     this.edpsCmderName = config.get("edpscmder")
+                    print(this.edpsCmderName)
+                    if this.edpsCmderName is None:
+                        this.edpsConsoleMessage = 'EDPS Started (No API Key)'
+                        this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                        this.edpsPassportCountMessage = 'No API Key in Settings'
+                        this.label2.event_generate('<<edpsUpdatePassportCountEvent>>', when="tail")
+                        retrying = 3
+                        break
+                    print("Here")
+                    cred = credentials(config.get("edpscmder"))
+                    print('trace')
+                    print(cred)
+                    print("Here2")
+                    if cred:
+                        print("Here3")
+                        headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
+                        r = requests.get('https://edps-api.d3develop.com/passports/passport?cmder_name=' + this.edpsCmderName, headers=headers, timeout=_TIMEOUT)
+                        if r.ok:
+                            if r.text == '"No User Found"':
+                                print('User not found in database')
+                                this.edpsConsoleMessage = 'Cmder not found! Sign up at edps.dev!'
+                                this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                                retrying = 3
+                                break
+                            else:
+                                this.Passport = json.loads(r.text)
+                                this.PassortLength = (len(this.Passport['visited'])-1)
+                                this.edpsPassportCountMessage = str(this.PassortLength) + ' of ' + str(this.FCLength)
+                                this.label2.event_generate('<<edpsUpdatePassportCountEvent>>', when="tail")
+                                retrying = 3
+                                break
+                        else:
+                            print('Error: Request returned a non-200 status code in Passport')
+                            this.edpsConsoleMessage = 'Unknown Error Reaching Server'
+                            this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                            retrying = 3
+                            break
+                        time.sleep(5)
+                        retrying = 3
+                        break
+                    else:
+                        this.edpsConsoleMessage = 'No Credentials'
+                        this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
+                        retrying = 3
+                        break
+                elif callType == 'getPassportStartUp':
+                    print('Getting Commanders Passport')
+                    time.sleep(1)
+                    this.edpsCmderName = monitor.cmdr
                     if this.edpsCmderName is None:
                         this.edpsConsoleMessage = 'EDPS Started (No API Key)'
                         this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
@@ -218,6 +279,7 @@ def workerEDPS():
                         break
                     cred = credentials(config.get("edpscmder"))
                     if cred:
+                        print("Here3")
                         headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
                         r = requests.get('https://edps-api.d3develop.com/passports/passport?cmder_name=' + this.edpsCmderName, headers=headers, timeout=_TIMEOUT)
                         if r.ok:
@@ -262,6 +324,8 @@ def workerEDPS():
 
 
 def plugin_prefs(parent, cmdr, is_beta):
+    config.set('edpscmder', cmdr)
+
     print('Plugin Prefs Ran')
     PADX = 10
     BUTTONX = 12	# indent Checkbuttons and Radiobuttons
@@ -294,7 +358,7 @@ def plugin_prefs(parent, cmdr, is_beta):
 
     this.apikey_label = nb.Label(this.edps_frame, text=_('API Key'))	# EDPS setting
     this.apikey_label.grid(row=12, padx=PADX, sticky=tk.W)
-    this.apikey = nb.Entry(this.edps_frame, textvariable=edpsapikey)
+    this.apikey = nb.Entry(this.edps_frame, textvariable=this.edpsapikey)
     this.apikey.grid(row=12, column=1, padx=PADX, pady=PADY, sticky=tk.EW)
 
     nb.Label(this.edps_frame).grid(sticky=tk.W)	# big spacer
@@ -317,15 +381,18 @@ def set_state_frame_childs(frame, state):
             child["state"] = state
 
 def prefs_cmdr_changed(cmdr, is_beta):
+    config.set('edpscmder', cmdr)
     set_state_frame_childs(this.edps_frame, tk.NORMAL)
     this.apikey.delete(0, tk.END)
     if cmdr:
+        print("In pref change cmd")
         this.cmdr_text["text"] = cmdr + (is_beta and " [Beta]" or "")
-        cred = credentials(config.get("edpscmder"))
+        cred = credentials(cmdr)
         if cred:
             this.apikey.insert(0, cred)
     else:
         this.cmdr_text["text"] = _("None")
+        print("In pref change cmd None")
 
     if not cmdr or is_beta:
         set_state_frame_childs(this.edps_frame, tk.DISABLED)
@@ -341,7 +408,6 @@ def prefs_changed(cmdr, is_beta):
             apikeys[idx] = this.apikey.get().strip()
         else:
             config.set("edps_cmdrs", cmdrs + [cmdr])
-            emails.append(this.email.get().strip())
             apikeys.append(this.apikey.get().strip())
         config.set("edps_apikeys", apikeys)
 
@@ -352,7 +418,7 @@ def credentials(cmdr):
         cmdrs = config.get("edps_cmdrs")
         if not cmdrs:
             # Migrate from single setting, first commander gets the old settings
-            cmdrs = [cmdr]
+            cmdrs = [config.get("edps_cmdr")]
             config.set("edps_cmdrs", cmdrs)
         apikeys = config.get("edps_apikeys")
         if cmdr in cmdrs and apikeys:
@@ -399,14 +465,15 @@ def load_Journal_Logs():
                                         #if this.edpscommanderimport == config.get("edpscmder"):
                                         cred = credentials(this.edpscommanderimport)
                                         if cred:
-                                            d1 = datetime.strptime(data['timestamp'],"%Y-%m-%dT%H:%M:%SZ")
-                                            w['text'] = w['text'] + "\nDocked to DSSA FC: " + data['StationName']
-                                            this.queueEDPS.put(('https://edps-api.d3develop.com/passports/passport/date',
-                                                            {'cmder_name': this.edpscommanderimport, 'api_key': cred,
-                                                             'callsign': data['StationName'].replace("-", ""),
-                                                             'date': d1.strftime('%m/%d/%Y')}, None, 'postDate',
-                                                            data['StationName'].replace("-", "")))
-                                            time.sleep(.01)
+                                            if this.edpscommanderimport == monitor.cmdr:
+                                                d1 = datetime.strptime(data['timestamp'],"%Y-%m-%dT%H:%M:%SZ")
+                                                w['text'] = w['text'] + "\nDocked to DSSA FC: " + data['StationName']
+                                                this.queueEDPS.put(('https://edps-api.d3develop.com/passports/passport/date',
+                                                                {'cmder_name': this.edpscommanderimport, 'api_key': cred,
+                                                                 'callsign': data['StationName'].replace("-", ""),
+                                                                 'date': d1.strftime('%m/%d/%Y')}, None, 'postDate',
+                                                                data['StationName'].replace("-", "")))
+                                                time.sleep(.01)
                                         else:
                                             w['text'] = w['text'] + "\nNo Credinitals for commander " + this.edpscommanderimport
                             except json.decoder.JSONDecodeError:
@@ -445,7 +512,14 @@ def plugin_app(parent):
 
     return (frame)
 
+def cmdr_data(data, is_beta):
+    """
+    We have new data on our commander
+    """
+    print('Event Fires Commander Data')
+
 def journal_entry(cmdr, is_beta, system, station, entry, state):
+    print('Event Fires')
     if entry['event'] == 'LoadGame':
         #Adding multi-commander support
         if 'Commander' in entry:
