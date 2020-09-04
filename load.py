@@ -20,7 +20,7 @@ if __debug__:
     from traceback import print_exc
 
 _TIMEOUT = 20
-_EDPSAPPVERSION = "0.8"
+_EDPSAPPVERSION = "0.9"
 
 this = sys.modules[__name__]  # For holding module globals
 #this.session = requests.Session()
