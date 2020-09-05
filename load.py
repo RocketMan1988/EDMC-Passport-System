@@ -20,7 +20,7 @@ if __debug__:
     from traceback import print_exc
 
 _TIMEOUT = 20
-_EDPSAPPVERSION = "0.9"
+_EDPSAPPVERSION = "1.0"
 
 this = sys.modules[__name__]  # For holding module globals
 #this.session = requests.Session()
@@ -52,21 +52,6 @@ def updatePlugin(version):
     else:
         this.label4["text"] = "Update Failed"
         print('Update Failed...')
-
-
-def wipeSettings():
-    config.set("edps_apikeys", [None])
-    config.set("edps_cmdrs", [None])
-    config.set('edpscmder', '')
-    printDebugInfo()
-
-def printDebugInfo():
-    cmder = config.get("edpscmder")
-    apikeys = config.get("edps_apikeys")
-    cmdrs = config.get("edps_cmdrs")
-    print(cmder)
-    print(apikeys)
-    print(cmdrs)
 
 def plugin_start3(plugin_dir):
    """
@@ -267,17 +252,20 @@ def workerEDPS():
                         retrying = 3
                         break
                 elif callType == 'getPassportStartUp':
-                    print('Getting Commanders Passport')
+                    print('Getting Commanders Passport - Startup')
                     time.sleep(1)
-                    this.edpsCmderName = monitor.cmdr
-                    if this.edpsCmderName is None:
+                    config.set('edpscmder', monitor.cmdr)
+                    if config.get("edpscmder") is None:
                         this.edpsConsoleMessage = 'EDPS Started (No API Key)'
                         this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
                         this.edpsPassportCountMessage = 'No API Key in Settings'
                         this.label2.event_generate('<<edpsUpdatePassportCountEvent>>', when="tail")
                         retrying = 3
                         break
-                    cred = credentials(config.get("edpscmder"))
+                    print(config.get("edpscmder"))
+                    this.edpsCmderName = config.get("edpscmder")
+                    cred = credentials(this.edpsCmderName)
+                    print(cred)
                     if cred:
                         print("Here3")
                         headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
@@ -412,20 +400,84 @@ def prefs_changed(cmdr, is_beta):
         config.set("edps_apikeys", apikeys)
 
 
+
+#----------------------------------------------------------------------------------
+#Credentials management
+#----------------------------------------------------------------------------------
+def wipeSettings():
+    config.set("edps_apikeys", [''])
+    config.set("edps_cmdrs", [''])
+    config.set('edpscmder', '')
+    print('Settings Wiped')
+    printDebugInfo()
+
+def printDebugInfo():
+    cmder = config.get("edpscmder")
+    apikeys = config.get("edps_apikeys")
+    cmdrs = config.get("edps_cmdrs")
+    print(cmder)
+    print(apikeys)
+    print(cmdrs)
+
+def createNewSettings():
+    if monitor.cmdr:
+        cmdrs = [monitor.cmdr]
+        config.set("edps_cmdrs", cmdrs)
+        config.set("edps_apikeys", [''])
+        config.set('edpscmder', monitor.cmdr)
+    else:
+        cmdrs = ['']
+        config.set("edps_cmdrs", cmdrs)
+        config.set("edps_apikeys", [''])
+        config.set('edpscmder', '')
+
+def addNewCmdr(cmdr):
+    print('Adding new cmdr')
+    cmdrs = config.get("edps_cmdrs")
+    apikeys = config.get("edps_apikeys")
+    apikeys.append('')
+    config.set("edps_cmdrs", cmdrs + [cmdr])
+    config.set("edps_apikeys", apikeys)
+
 def credentials(cmdr):
     # Credentials for cmdr
+    print('In Credit')
+    #Confirm that a cmdr was given
     if cmdr:
         cmdrs = config.get("edps_cmdrs")
-        if not cmdrs:
-            # Migrate from single setting, first commander gets the old settings
-            cmdrs = [config.get("edps_cmdr")]
-            config.set("edps_cmdrs", cmdrs)
         apikeys = config.get("edps_apikeys")
+        #See if cmdrs exists if not then create (First time app use)
+        if not cmdrs:
+            #First time using the app
+            createNewSettings()
+            cmdrs = config.get("edps_cmdrs")
+            apikeys = config.get("edps_apikeys")
+            return(apikeys[0])
+        # Check if older version of the app exists
+        if not apikeys or len(apikeys) != len(cmdrs):
+            #Old version of the app - Clear Settings
+            createNewSettings()
+            cmdrs = config.get("edps_cmdrs")
+            apikeys = config.get("edps_apikeys")
+            return (apikeys[0])
         if cmdr in cmdrs and apikeys:
             idx = cmdrs.index(cmdr)
             return (apikeys[idx])
-    return None
+        else:
+            #No Cmdr Found
+            addNewCmdr(cmdr)
+    else:
+        print('No cmdr Supplied')
+        return None
 
+
+
+
+
+
+#----------------------------------------------------------------------------------
+#Load Journal Function
+#----------------------------------------------------------------------------------
 def load_Journal_Logs():
     print("Loading Logs Function TBD...")
     rootdir = config.default_journal_dir
