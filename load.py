@@ -20,7 +20,7 @@ if __debug__:
     from traceback import print_exc
 
 _TIMEOUT = 20
-_EDPSAPPVERSION = "1.0"
+_EDPSAPPVERSION = "1.1"
 
 this = sys.modules[__name__]  # For holding module globals
 #this.session = requests.Session()
@@ -254,7 +254,8 @@ def workerEDPS():
                 elif callType == 'getPassportStartUp':
                     print('Getting Commanders Passport - Startup')
                     time.sleep(1)
-                    config.set('edpscmder', monitor.cmdr)
+                    if monitor.cmdr:
+                        config.set('edpscmder', monitor.cmdr)
                     if config.get("edpscmder") is None:
                         this.edpsConsoleMessage = 'EDPS Started (No API Key)'
                         this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
@@ -491,6 +492,12 @@ def load_Journal_Logs():
 
     this.edpscommanderimport = config.get("edpscmder")
 
+    if monitor.cmdr:
+        pass
+    else:
+        this.label4["text"] = 'No Cmdr - Login!'
+        return
+
     for subdir, dirs, files in os.walk(rootdir):
         this.processingFile = 0
         for file in files:
@@ -581,7 +588,7 @@ def journal_entry(cmdr, is_beta, system, station, entry, state):
             this.label4.event_generate('<<edpsUpdateConsoleEvent>>', when="tail")
     if entry['event'] == 'Docked':
         # Docking Event Detected
-        if entry['StationType'] == 'FleetCarrier' and any(x['callsign_formatted'] == entry['StationName'] for x in this.FCs) and any(y['system'] == entry['StarSystem'] for y in this.FCs):
+        if entry['StationType'] == 'FleetCarrier' and any(x['callsign_formatted'] == entry['StationName'] for x in this.FCs) and any(y['system'].lower() == entry['StarSystem'].lower() for y in this.FCs):
             print('Detected FC Docking')
             config.set('edpscmder', cmdr)
             cred = credentials(config.get("edpscmder"))
