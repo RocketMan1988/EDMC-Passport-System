@@ -20,7 +20,7 @@ if __debug__:
     from traceback import print_exc
 
 _TIMEOUT = 20
-_EDPSAPPVERSION = "1.1"
+_EDPSAPPVERSION = "1.2"
 
 this = sys.modules[__name__]  # For holding module globals
 #this.session = requests.Session()
@@ -371,6 +371,7 @@ def set_state_frame_childs(frame, state):
 
 def prefs_cmdr_changed(cmdr, is_beta):
     config.set('edpscmder', cmdr)
+    config.set('edpslog', this.edpslog.get())
     set_state_frame_childs(this.edps_frame, tk.NORMAL)
     this.apikey.delete(0, tk.END)
     if cmdr:
@@ -399,6 +400,7 @@ def prefs_changed(cmdr, is_beta):
             config.set("edps_cmdrs", cmdrs + [cmdr])
             apikeys.append(this.apikey.get().strip())
         config.set("edps_apikeys", apikeys)
+    config.set('edpslog', this.edpslog.get())
 
 
 
@@ -493,6 +495,7 @@ def load_Journal_Logs():
     this.edpscommanderimport = config.get("edpscmder")
 
     if monitor.cmdr:
+        prefs_cmdr_changed(monitor.cmdr, False)
         pass
     else:
         this.label4["text"] = 'No Cmdr - Login!'
