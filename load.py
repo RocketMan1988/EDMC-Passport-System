@@ -216,7 +216,6 @@ def workerEDPS():
                     print("Here")
                     cred = credentials(config.get("edpscmder"))
                     print('trace')
-                    print(cred)
                     print("Here2")
                     if cred:
                         print("Here3")
@@ -265,7 +264,6 @@ def workerEDPS():
                     print(config.get("edpscmder"))
                     this.edpsCmderName = config.get("edpscmder")
                     cred = credentials(this.edpsCmderName)
-                    print(cred)
                     if cred:
                         print("Here3")
                         headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
