@@ -351,7 +351,7 @@ def plugin_prefs(parent, cmdr, is_beta):
 
     this.apikey_label = nb.Label(this.edps_frame, text=plugin_tl('API Key'))	# EDPS setting
     this.apikey_label.grid(row=12, padx=PADX, sticky=tk.W)
-    this.apikey = nb.Entry(this.edps_frame, textvariable=this.edpsapikey)
+    this.apikey = nb.EntryMenu(this.edps_frame, textvariable=this.edpsapikey)
     this.apikey.grid(row=12, column=1, padx=PADX, pady=PADY, sticky=tk.EW)
 
     nb.Label(this.edps_frame).grid(sticky=tk.W)	# big spacer
