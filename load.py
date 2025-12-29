@@ -30,6 +30,10 @@ this.label4 = None
 
 try:
     from config import config
+
+    # For compatibility with pre-5.0.0
+    if not hasattr(config, 'get_int'):
+        config.get_int = config.getint
 except ImportError:
     config = dict()
 
@@ -109,7 +113,7 @@ def workerEDPS():
                         break
                     else:
                         print("Add FC to Passport!")
-                        if config.getint("edpslog"):
+                        if config.get_int("edpslog"):
                             headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
                             r = requests.post(url, data=json.dumps(data, separators=(',', ':')), headers=headers, timeout=_TIMEOUT)
                             time.sleep(1)
@@ -323,10 +327,10 @@ def plugin_prefs(parent, cmdr, is_beta):
     cred = credentials(cmdr)
 
     if cred:
-        this.edpslog = tk.IntVar(value=config.getint("edpslog"))
+        this.edpslog = tk.IntVar(value=config.get_int("edpslog"))
         this.edpsapikey = tk.StringVar(value=cred)
     else:
-        this.edpslog = tk.IntVar(value=config.getint("edpslog"))
+        this.edpslog = tk.IntVar(value=config.get_int("edpslog"))
         this.edpsapikey = tk.StringVar(value="")
 
     HyperlinkLabel(this.edps_frame, text='Elite Dangerous Passport System', background=nb.Label().cget('background'), url='https://www.edps.dev', underline=True).grid(columnspan=2, padx=PADX, sticky=tk.W)	# Don't translate
