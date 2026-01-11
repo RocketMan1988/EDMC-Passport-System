@@ -7,7 +7,8 @@ import sys
 import os
 import time
 from datetime import datetime
-from l10n import Locale
+import l10n
+import functools
 import myNotebook as nb
 from ttkHyperlinkLabel import HyperlinkLabel
 import json
@@ -30,8 +31,14 @@ this.label4 = None
 
 try:
     from config import config
+
+    # For compatibility with pre-5.0.0
+    if not hasattr(config, 'get_int'):
+        config.get_int = config.getint
 except ImportError:
     config = dict()
+
+plugin_tl = functools.partial(l10n.translations.tl, context=__file__)
 
 def updatePlugin(version):
     print('Beginning file download with requests')
@@ -109,7 +116,7 @@ def workerEDPS():
                         break
                     else:
                         print("Add FC to Passport!")
-                        if config.getint("edpslog"):
+                        if config.get_int("edpslog"):
                             headers = {'x-api-key': 'bn9oCD5lqp7Yavh3l7VLB4lixo1FI69F2aiOmznB'}
                             r = requests.post(url, data=json.dumps(data, separators=(',', ':')), headers=headers, timeout=_TIMEOUT)
                             time.sleep(1)
@@ -323,33 +330,33 @@ def plugin_prefs(parent, cmdr, is_beta):
     cred = credentials(cmdr)
 
     if cred:
-        this.edpslog = tk.IntVar(value=config.getint("edpslog"))
+        this.edpslog = tk.IntVar(value=config.get_int("edpslog"))
         this.edpsapikey = tk.StringVar(value=cred)
     else:
-        this.edpslog = tk.IntVar(value=config.getint("edpslog"))
+        this.edpslog = tk.IntVar(value=config.get_int("edpslog"))
         this.edpsapikey = tk.StringVar(value="")
 
     HyperlinkLabel(this.edps_frame, text='Elite Dangerous Passport System', background=nb.Label().cget('background'), url='https://www.edps.dev', underline=True).grid(columnspan=2, padx=PADX, sticky=tk.W)	# Don't translate
-    this.log_button = nb.Checkbutton(this.edps_frame, text=_('Send passport data to EDPS'), variable=this.edpslog)
+    this.log_button = nb.Checkbutton(this.edps_frame, text=plugin_tl('Send passport data to EDPS'), variable=this.edpslog)
     this.log_button.grid(columnspan=2, padx=BUTTONX, pady=(5,0), sticky=tk.W)
 
     nb.Label(this.edps_frame).grid(sticky=tk.W)	# big spacer
-    this.label = HyperlinkLabel(this.edps_frame, text=_('Elite Dangerous Passport Credentials'), background=nb.Label().cget('background'), url='https://www.edps.dev', underline=True)	# Section heading in settings
+    this.label = HyperlinkLabel(this.edps_frame, text=plugin_tl('Elite Dangerous Passport Credentials'), background=nb.Label().cget('background'), url='https://www.edps.dev', underline=True)	# Section heading in settings
     this.label.grid(columnspan=2, padx=PADX, sticky=tk.W)
 
-    this.cmdr_label = nb.Label(this.edps_frame, text=_('Commander Name'))  # Main window
+    this.cmdr_label = nb.Label(this.edps_frame, text=plugin_tl('Commander Name'))  # Main window
     this.cmdr_label.grid(row=10, padx=PADX, sticky=tk.W)
     this.cmdr_text = nb.Label(this.edps_frame, text=cmdr)
     this.cmdr_text.grid(row=10, column=1, padx=PADX, pady=PADY, sticky=tk.W)
 
-    this.apikey_label = nb.Label(this.edps_frame, text=_('API Key'))	# EDPS setting
+    this.apikey_label = nb.Label(this.edps_frame, text=plugin_tl('API Key'))	# EDPS setting
     this.apikey_label.grid(row=12, padx=PADX, sticky=tk.W)
-    this.apikey = nb.Entry(this.edps_frame, textvariable=this.edpsapikey)
+    this.apikey = nb.EntryMenu(this.edps_frame, textvariable=this.edpsapikey)
     this.apikey.grid(row=12, column=1, padx=PADX, pady=PADY, sticky=tk.EW)
 
     nb.Label(this.edps_frame).grid(sticky=tk.W)	# big spacer
 
-    this.progressComplete = nb.Label(this.edps_frame, text=_('0%'))
+    this.progressComplete = nb.Label(this.edps_frame, text=plugin_tl('0%'))
     this.progressComplete.grid(row=15, padx=PADX, sticky=tk.W)
 
     this.import_Journal = nb.Button(this.edps_frame, text="Send Local Journal Files", command=load_Journal_Logs)   # Main window
@@ -378,7 +385,7 @@ def prefs_cmdr_changed(cmdr, is_beta):
         if cred:
             this.apikey.insert(0, cred)
     else:
-        this.cmdr_text["text"] = _("None")
+        this.cmdr_text["text"] = plugin_tl("None")
         print("In pref change cmd None")
 
     if not cmdr or is_beta:
